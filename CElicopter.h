@@ -3,7 +3,7 @@
 #include "AAerian.h"
 #include <CMasina.h>
 
-class CElicopter : public AAerian
+class CElicopter : public AAerian, CMasina
 {
 private:
     
