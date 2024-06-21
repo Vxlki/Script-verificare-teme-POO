@@ -7,5 +7,5 @@ class AAutovehicul : public ITransport
 protected:
 
 public:
-
+    virtual void afisare();
 };

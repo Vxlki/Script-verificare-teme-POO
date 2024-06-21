@@ -7,5 +7,5 @@ class CAutobuz : public AAutovehicul
 protected:
 
 public:
-
+    void afisare() override;
 };

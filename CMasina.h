@@ -4,8 +4,9 @@
 
 class CMasina : public AAutovehicul
 {
-    private:
+private:
 
-    public:
-
+public:
+    void afisare() override;
+    void afisare2();
 };

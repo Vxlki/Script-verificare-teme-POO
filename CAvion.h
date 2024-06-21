@@ -2,10 +2,10 @@
 
 #include "AAerian.h"
 
-class CAvion
+class CAvion : public AAerian
 {
 private:
 
 public:
-
+    void afisare() override;
 };

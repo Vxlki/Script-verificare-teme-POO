@@ -2,10 +2,10 @@
 
 #include "AMaritim.h"
 
-class CBarca
+class CBarca : public AMaritim
 {
 private:
 
 public:
-
+    void afisare() override;
 };

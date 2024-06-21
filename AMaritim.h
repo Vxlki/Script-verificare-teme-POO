@@ -7,4 +7,5 @@ class AMaritim : public ITransport
 protected:
 
 public:
+    virtual void afisare();
 };

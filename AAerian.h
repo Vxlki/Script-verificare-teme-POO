@@ -2,10 +2,10 @@
 
 #include "ITransport.h"
 
-class AAerian
+class AAerian : ITransport
 {
 protected:
 
 public:
-
+    virtual void afisare();
 };

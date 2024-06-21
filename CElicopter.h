@@ -3,9 +3,10 @@
 #include "AAerian.h"
 #include <CMasina.h>
 
-class CElicopter : public AAerian, CMasina
+class CElicopter : public AAerian
 {
 private:
     
 public:
+    void afisare() override;
 };

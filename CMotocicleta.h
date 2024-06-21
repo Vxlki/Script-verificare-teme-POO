@@ -7,5 +7,5 @@ class CMotocicleta : public AAutovehicul
 private:
 
 public:
-
+    void afisare() override;
 };

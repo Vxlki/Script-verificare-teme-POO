@@ -61,7 +61,6 @@ then
 
         lines=$(cat "$2" | egrep "class")
 
-        # Funcție pentru a extrage numele clasei și clasele moștenite
         extract_class_and_parents() {
             local line=$1
             local cls=$(echo $line | cut -d" " -f2)
@@ -69,10 +68,9 @@ then
             echo "$cls $parents"
         }
 
-        # Funcție pentru a afișa arborele de moștenire
         print_tree() {
             local class=$1
-            local indent=$2   # Asigură-te că variabila indent este în ghilimele duble
+            local indent=$2  
 
             if [ "$3" = true ]; then
                 echo "${indent}\\-- ${class}"
@@ -82,7 +80,6 @@ then
                 indent="${indent}|   "
             fi
 
-            # Folosește variabila $2 (a doua argument a funcției) pentru a evita confuziile cu spațiile albe
             parents=$(egrep "class\s\+${class}\s*:" "$4" | sed -n 's/.*: *//p' | tr ',' '\n' | awk '{print $(NF)}')
             count=$(echo "$parents" | wc -w)
             i=1
@@ -101,9 +98,6 @@ then
         # Main
         i=1
         while IFS= read -r line; do
-            echo "Processing line: $line"  # Debugging: afișează linia procesată
-            
-            # Extrage numele clasei și clasele moștenite
             class_and_parents=($(extract_class_and_parents "$line"))
             cls=${class_and_parents[0]}
             parents=${class_and_parents[@]:1}
@@ -125,6 +119,51 @@ then
             echo
             ((i++))
         done <<< "$lines"
+
+        #vezi daca e interfata, clasa abstracta sau clasa concreta
+        interf=`cat $2 | egrep "virtual.*=.*0"`
+        if [[ ! -z $interf ]]
+        then
+            declare -a vinterf=()
+            while IFS= read -r line; do
+                class_name=$(echo "$line" | awk '{print $3}')
+                vinterf+=("$class_name")
+            done <<< "$interf"
+        fi
+        echo interf
+        echo "${vinterf[@]}"
+
+        virtual=`cat $2 | egrep "virtual.*;"`
+        if [[ ! -z $virtual ]]
+        then
+            declare -a vvirtual=()
+            while IFS= read -r line; do
+                class_name=$(echo "$line" | awk '{print $3}')
+                vvirtual+=("$class_name")
+            done <<< "$virtual"
+        fi
+        echo virtual
+        echo "${vvirtual[@]}"
+
+        concret_with_override=$(cat $2 | grep "() override")
+        concret_without_override=$(cat $2 | grep "();" | grep -v "() override;" | grep -v "virtual")
+        declare -a vconcret=()
+        if [[ ! -z $concret_with_override ]]
+        then
+            while IFS= read -r line; do
+                class_name=$(echo "$line" | awk '{print $2}')
+                vconcret+=("$class_name")
+            done <<< "$concret_with_override"
+        fi
+        if [[ ! -z $concret_without_override ]]
+        then
+            while IFS= read -r line; do
+                class_name=$(echo "$line" | awk '{print $2}')
+                vconcret+=("$class_name")
+            done <<< "$concret_without_override"
+        fi
+        echo concret
+        echo "${vconcret[@]}"
 
 
     elif [[ $1 == "-c" ]]
