@@ -7,6 +7,7 @@ class CMasina : public AAutovehicul
 private:
 
 public:
+    CMasina();
     void afisare() override;
     void afisare2();
 };

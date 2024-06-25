@@ -11,6 +11,14 @@ function error_message {
     echo -e "\033[31m⛔ $1\033[0m"
 }
 
+function mesajcolorat1 {
+    echo -e "\033[42m$1\033[0m"
+}
+
+function info_message {
+    echo -e "\033[96mℹ️ $1\033[0m"
+}
+
 
 if [[ -e $2 ]]
 then
@@ -130,8 +138,17 @@ then
                 vinterf+=("$class_name")
             done <<< "$interf"
         fi
-        echo interf
-        echo "${vinterf[@]}"
+        info_message "Functii virtuale pure:"
+        if [[ ${#vinterf[@]} -eq 0 ]]
+        then
+            mesajcolorat1 "Nu exista functii virtuale pure in $2."
+        else
+            for i in ${vinterf[@]}
+            do
+                mesajcolorat1 "-$i"
+            done
+        fi
+        
 
         virtual=`cat $2 | egrep "virtual.*;"`
         if [[ ! -z $virtual ]]
@@ -142,11 +159,19 @@ then
                 vvirtual+=("$class_name")
             done <<< "$virtual"
         fi
-        echo virtual
-        echo "${vvirtual[@]}"
+        info_message "Functii virtuale:"
+        if [[ ${#vvirtual[@]} -eq 0 ]]
+        then
+            mesajcolorat1 "Nu exista functii virtuale in $2."
+        else
+            for i in ${vvirtual[@]}
+            do
+                mesajcolorat1 "-$i"
+            done
+        fi
 
         concret_with_override=$(cat $2 | grep "() override")
-        concret_without_override=$(cat $2 | grep "();" | grep -v "() override;" | grep -v "virtual")
+        concret_without_override=$(cat $2 | grep "();" | grep -v "() override;" | grep -v "virtual" | tr ";" " ")
         declare -a vconcret=()
         if [[ ! -z $concret_with_override ]]
         then
@@ -162,13 +187,24 @@ then
                 vconcret+=("$class_name")
             done <<< "$concret_without_override"
         fi
-        echo concret
-        echo "${vconcret[@]}"
+        echo ${vconcret[@]}
+        info_message "Functii concrete:"
+        if [[ ${#vconcret[@]} -eq 0 ]]
+        then
+            mesajcolorat1 "Nu exista functii concrete in $2."
+        else
+            for i in ${vconcret[@]}
+            do
+                mesajcolorat1 "-$i"
+            done
+        fi
 
 
     elif [[ $1 == "-c" ]]
     then
         dependencies=`cat $2 | egrep "#include"`
+        for i in $dependencies
+        do
         headers=`echo $i | egrep "[[:alnum:]]*\.h" | tr \"\<\> " " `
             for j in $headers
             do
@@ -176,16 +212,68 @@ then
                 then
                     jcls=`echo $j | cut -d. -f1`
                     cls=`cat $j | egrep class | cut -d" " -f2`
-                    if [[ $jcls != $cls ]]                            # afisez un warning daca numele header-ului este diferit de numele clasei
-                    then
-                        warning_message "Numele clasei ($cls) este diferit de numele header-ului ($j)."
-                    fi
                     clase[$nrclase]=$cls
                     nrclase=$nrclase+1
                 else
                     error_message "Fisierul $j inclus in $2 nu exista!"
                 fi
             done
+        done
+
+        baseclass=`echo "$2" | cut -d. -f1`
+        #echo $baseclass
+        fct=`cat $2 | egrep "::.*\(\)" | cut -d: -f3`
+        for i in $fct 
+        do
+            hfct=`cat "$baseclass.h" | egrep "$i"`
+            if [[ -z $hfct ]]
+            then
+                error_message "Functia "$i" nu este definita!"
+            fi
+        done
+        
+    elif [[ $1 == "-t" ]]
+    then
+
+        if [[ ! -d $2 ]]; then
+            error_message "Directorul nu exista!"
+            exit 1
+        fi
+
+        declare -A classes
+
+        for file in "$2"/*.h; do
+            if [[ -f $file ]]; then
+                class_name=$(grep -oP 'class\s+\K\w+' $file)
+                base_class=$(grep -oP ':\s*public\s+\K\w+' $file)
+                
+                if [[ -n $class_name ]]; then
+                    if [[ -n $base_class ]]; then
+                        classes[$class_name]=$base_class
+                    else
+                        classes[$class_name]=""
+                    fi
+                fi
+            fi
+        done
+
+        print_tree() {
+            local class=$1
+            local indent=$2
+
+            echo "${indent}${class}"
+            for derived_class in "${!classes[@]}"; do
+                if [[ ${classes[$derived_class]} == $class ]]; then
+                    print_tree "$derived_class" "$indent    "
+                fi
+            done
+        }
+
+        for class in "${!classes[@]}"; do
+        if [[ -z ${classes[$class]} ]]; then
+            print_tree "$class" ""
+        fi
+    done
     else
         echo vezi ca n ai pus parametrii corecti
     fi
