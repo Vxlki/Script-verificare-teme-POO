@@ -1,7 +1,7 @@
 #include <iostream>
 #include "CMasina.h"
 
-CMasina::CMasina()
+CMasina::CMasina() : AAutovehicul()
 {
 }
 
@@ -11,6 +11,6 @@ void CMasina::afisare()
 }
 
 void CMasina::creier()
-{
+{   
     
 }

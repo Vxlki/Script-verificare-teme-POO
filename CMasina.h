@@ -10,4 +10,5 @@ public:
     CMasina();
     void afisare() override;
     void afisare2();
+    void animal();
 };

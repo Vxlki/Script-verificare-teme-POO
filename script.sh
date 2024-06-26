@@ -260,20 +260,100 @@ then
         print_tree() {
             local class=$1
             local indent=$2
+            local branch=$3
 
-            echo "${indent}${class}"
+            echo "${indent}${branch}${class}"
+            local sub_indent="${indent}    "
+            local sub_branch="|-- "
+
+            local first=true
             for derived_class in "${!classes[@]}"; do
                 if [[ ${classes[$derived_class]} == $class ]]; then
-                    print_tree "$derived_class" "$indent    "
+                    if $first; then
+                        first=false
+                        print_tree "$derived_class" "$sub_indent" "├── "
+                    else
+                        print_tree "$derived_class" "$sub_indent" "└──"
+                    fi
                 fi
             done
         }
 
         for class in "${!classes[@]}"; do
-        if [[ -z ${classes[$class]} ]]; then
-            print_tree "$class" ""
+            if [[ -z ${classes[$class]} ]]; then
+                print_tree "$class" "" ""
+            fi
+        done
+    elif [[ $1 == "-ch" ]] || [[ $1 == "-hc" ]]
+    then
+        source=$2
+        header=$3
+
+        if [[ -e $source ]] && [[ -e $header ]]
+        then
+            declare -a clase
+            declare -i nrclase=0
+
+            dependencies=`cat $header | egrep "#include"`
+            for i in $dependencies
+            do
+                headers=`echo $i | egrep "[[:alnum:]]*\.h" | tr \"\<\> " " `
+                for j in $headers
+                do
+                    if [[ -e $j ]]
+                    then
+                        jcls=`echo $j | cut -d. -f1`
+                        cls=`cat $j | egrep class | cut -d" " -f2`
+                        clase[$nrclase]=$cls
+                        nrclase=$nrclase+1
+                    else
+                        error_message "Fisierul $j inclus in $2 nu exista!"
+                    fi
+                done
+            done
+
+            LIMIT=${#clase[@]}
+            for ((i=0;i<$LIMIT;i++))
+            do  
+                cls=${clase[$i]}
+                used=`cat $header | egrep -v "#include" | egrep -m1 "$cls"`
+                if [[ -z $used ]]
+                then
+                    warning_message "Clasa $cls nu este folosita in header ($header), desi este inclusa."
+                fi
+                used=`cat $source | egrep -v "#include" | egrep -m1 "$cls"`
+                if [[ -z $used ]]
+                then
+                    warning_message "Clasa $cls nu este folosita in sursa ($source)."
+                fi
+            done
+
+            #baseclass=`cat $header | egrep "class" | cut -d" " -f2`
+            #echo $baseclass
+            fct=`cat $source | egrep "::.*\(\)" | cut -d: -f3`
+            for i in $fct 
+            do
+                hfct=`cat "$header" | egrep "$i"`
+                if [[ -z $hfct ]]
+                then
+                    error_message "Functia "$i" nu este definita, dar este utilizata in sursa ($source)!"
+                fi
+            done
+            
+            fct=$(grep -oP '^\s*\w[\w\s]*\w+\s+\w+\s*\([^)]*\)\s*;' "$header" | sed -E 's/^\s*\w[\w\s]*\w+\s+(\w+)\s*\([^)]*\)\s*;/\1/')
+
+            for i in $fct 
+            do
+                hfct=$(grep -P "^\s*[\w\s]*::\s*$i\s*\(" "$source")
+                if [[ -z $hfct ]]
+                then
+                    warning_message "Functia '$i' este definita în header, dar nu este implementata in sursa."
+                fi
+            done
+        else
+            error_message "Sursa sau header-ul nu exista!"
+            exit 1
         fi
-    done
     else
         echo vezi ca n ai pus parametrii corecti
     fi
