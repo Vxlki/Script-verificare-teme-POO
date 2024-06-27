@@ -1,8 +1,9 @@
 #pragma once
 
 #include "AAutovehicul.h"
+#include "Antonel.h"
 
-class CAutobuz : public AAutovehicul
+class CAutobuz1 : public AAutovehicul
 {
 protected:
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ITransport.h"
+#include "CMasina.h"
 
 class AAutovehicul : public ITransport
 {

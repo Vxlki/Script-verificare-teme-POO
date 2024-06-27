@@ -1,13 +1,13 @@
 #pragma once
 
 #include "AAutovehicul.h"
+#include "AAerian.h"
 
 class CMasina : public AAutovehicul
 {
 private:
-
-public:
     CMasina();
+public:
     void afisare() override;
     void afisare2();
     void animal();

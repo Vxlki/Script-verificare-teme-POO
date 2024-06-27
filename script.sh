@@ -19,6 +19,56 @@ function info_message {
     echo -e "\033[96mℹ️ $1\033[0m"
 }
 
+find_includes() {
+    grep -E '^#include "[^"]+"' "$1" | sed -E 's/^#include "(.*)"/\1/'
+}
+
+detect_circular_dependencies() {
+    local dir="$1"
+    declare -A dependencies
+
+    for file in "$dir"/*.h; do
+        filename=$(basename "$file")
+        includes=$(find_includes "$file")
+        dependencies["$filename"]="$includes"
+    done
+
+    dfs() {
+        local node="$1"
+        local visited="$2"
+        local stack="$3"
+
+        if [[ "$stack" =~ $node ]]; then
+            error_message "S-a detectat dependenta circulara! ${stack#*${node}}-> $node"
+            return 1
+        fi
+
+        if [[ "$visited" =~ $node ]]; then
+            return 0
+        fi
+
+        visited+="$node "
+        stack+="$node "
+
+        for neighbor in ${dependencies["$node"]}; do
+            if ! dfs "$neighbor" "$visited" "$stack"; then
+                return 1
+            fi
+        done
+
+        return 0
+    }
+
+    for file in "${!dependencies[@]}"; do
+        if ! dfs "$file" "" ""; then
+            return 1
+        fi
+    done
+
+    info_message "Nu s-a detectat nicio dependenta circulara."
+    return 0
+}
+
 
 if [[ -e $2 ]]
 then
@@ -27,6 +77,8 @@ then
     nrclase=0
     if [[ $1 == "-h" ]]
     then
+        numeheader=`echo "$2" | cut -d. -f1`
+        
         pragma=`cat $2 | egrep "#pragma once"`
         if [[ -z $pragma ]]
         then
@@ -81,10 +133,10 @@ then
             local indent=$2  
 
             if [ "$3" = true ]; then
-                echo "${indent}\\-- ${class}"
+                echo "${indent}├── ${class}"
                 indent="${indent}    "
             else
-                echo "${indent}|-- ${class}"
+                echo "${indent}└── ${class}"
                 indent="${indent}|   "
             fi
 
@@ -102,8 +154,7 @@ then
             done
         }
 
-
-        # Main
+        mesajcolorat1 "Mostenire:"
         i=1
         while IFS= read -r line; do
             class_and_parents=($(extract_class_and_parents "$line"))
@@ -150,8 +201,8 @@ then
         fi
         
 
-        virtual=`cat $2 | egrep "virtual.*;"`
-        if [[ ! -z $virtual ]]
+        virtual=`cat $2 | egrep "virtual.*;" | egrep -v "0"`
+        if [[ ! -z $virtual ]] 
         then
             declare -a vvirtual=()
             while IFS= read -r line; do
@@ -187,7 +238,6 @@ then
                 vconcret+=("$class_name")
             done <<< "$concret_without_override"
         fi
-        echo ${vconcret[@]}
         info_message "Functii concrete:"
         if [[ ${#vconcret[@]} -eq 0 ]]
         then
@@ -199,6 +249,30 @@ then
             done
         fi
 
+        declare -i count=0
+        cls=`cat $2 | egrep class | cut -d" " -f2`
+        class_content=$(awk "/class $cls/,/};/" "$2")
+
+        public=`echo "$class_content" | awk '/public:/{flag=1;next}/private:|protected:/{flag=0}flag'`
+        cpublic=`echo $public | egrep -wo $cls`
+        if [[ -z $cpublic ]]
+        then
+            count=$count+1
+        fi
+        
+        privprot=`echo "$class_content" | awk '/private:|protected:/{flag=1;next}/public:/{flag=0}flag'`
+        cprivprot=`echo $privprot | egrep -wo $cls`
+        if [[ -z $cprivprot ]]
+        then
+            count=$count+1
+        else
+            info_message " Unul din constructorii clasei $cls este private/protected."
+        fi
+
+        if [[ $count -eq 2 ]]
+        then
+            warning_message "Nu ai niciun constructor in header-ul $2!"
+        fi
 
     elif [[ $1 == "-c" ]]
     then
@@ -354,10 +428,18 @@ then
             error_message "Sursa sau header-ul nu exista!"
             exit 1
         fi
+    elif [[ $1 == "-o" ]]
+    then
+        directory=$2
+        if [[ -z "$directory" ]]; then
+            error_message "Directorul nu este valid!"
+            exit 1
+        fi
+
+        detect_circular_dependencies "$directory"
     else
-        echo vezi ca n ai pus parametrii corecti
+        error_message "Optiunile nu sunt valide!"
     fi
 else
-    echo Fisierul $2 nu exista!
-    return
+    error_message "Fisierul \"$2\" nu exista!"
 fi
