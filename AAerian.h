@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ITransport.h"
+#include "CAvion.h"
 
 class AAerian : ITransport
 {

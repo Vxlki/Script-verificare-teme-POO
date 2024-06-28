@@ -269,9 +269,12 @@ then
             info_message " Unul din constructorii clasei $cls este private/protected."
         fi
 
-        if [[ $count -eq 2 ]]
+        if [[ ! -z $vconcret ]] || [[ ! -z $vvirtual ]]
         then
-            warning_message "Nu ai niciun constructor in header-ul $2!"
+            if [[ $count -eq 2 ]]
+            then
+                warning_message "Nu ai niciun constructor in header-ul $2!"
+            fi
         fi
 
     elif [[ $1 == "-c" ]]
